@@ -132,9 +132,7 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 }
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
-export default function ProjectListingPage({isMobile}) {
-  // const isMobile = useIsMobile(); // JS-driven breakpoint — reacts to DevTools resize
-
+export default function ProjectListingPage({ isMobile }) {
   const [projects,      setProjects]      = useState([]);
   const [loading,       setLoading]       = useState(true);
   const [error,         setError]         = useState(null);
@@ -234,8 +232,8 @@ export default function ProjectListingPage({isMobile}) {
   return (
     <div
       className="bg-white relative z-10 sm:-mt-4 rounded-xl sm:rounded-t-xl
-                 mx-2 shadow-sm overflow-hidden"
-      style={{ minHeight: "calc(100dvh - 100px)" }}  // dvh = dynamic viewport height
+                 mx-2 shadow-sm overflow-x-hidden"  // ✅ FIXED: was overflow-hidden, which clipped pagination on mobile
+      style={{ minHeight: "calc(100dvh - 100px)" }}
     >
       {/* ── Search + Sort bar ── */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-4 sm:px-6 py-4">
@@ -312,18 +310,29 @@ export default function ProjectListingPage({isMobile}) {
         </div>
       ) : (
         <>
-          {/* ── JS-driven layout switch (fixes DevTools resize bug) ── */}
           {isMobile ? (
-            // Mobile: stacked cards
-            <div className="flex flex-col gap-3 p-4 w-full overflow-hidden">
-              {paginatedProjects.map((p) => (
-                <ProjectCard
-                  key={p.project_id}
-                  p={p}
-                  isActioning={actionLoading?.startsWith(`${p.project_id}-`)}
-                  onAction={callAction}
-                />
-              ))}
+            <div className="flex flex-col w-full">
+              <div className="flex flex-col gap-3 p-4 pb-6">
+                {paginatedProjects.map((p) => (
+                  <ProjectCard
+                    key={p.project_id}
+                    p={p}
+                    isActioning={actionLoading?.startsWith(`${p.project_id}-`)}
+                    onAction={callAction}
+                  />
+                ))}
+              </div>
+
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={(page) => {
+                  setCurrentPage(page);
+                  // Scroll the parent <main> container back to top
+                  const main = document.querySelector("main");
+                  if (main) main.scrollTo({ top: 0, behavior: "smooth" });
+                }}
+              />
             </div>
           ) : (
             // Tablet / Desktop: scrollable table
@@ -400,14 +409,15 @@ export default function ProjectListingPage({isMobile}) {
                   })}
                 </tbody>
               </table>
+
+              {/* Pagination for desktop */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
             </div>
           )}
-
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-          />
         </>
       )}
     </div>

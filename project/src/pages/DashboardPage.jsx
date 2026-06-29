@@ -10,7 +10,6 @@ import CreateProject  from "./CreateProjectPage";
 import { STATS_API, CHARTS_API } from "../services/api";
 
 // ─── useIsMobile Hook ─────────────────────────────────────────────────────────
-// Safe for SSR: initializes to false, then corrects after mount via useLayoutEffect
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(
     () => window.innerWidth < breakpoint
@@ -25,6 +24,7 @@ function useIsMobile(breakpoint = 768) {
 
   return isMobile;
 }
+
 // ─── Dept code helper ─────────────────────────────────────────────────────────
 const DEPT_CODE_OVERRIDES = { quality: "QLT" };
 
@@ -35,7 +35,7 @@ const toDeptCode = (name) => {
   return name.length > 3 ? name.slice(0, 3).toUpperCase() : name.toUpperCase();
 };
 
-// ─── Stat cards config — defined outside component to avoid recreation ────────
+// ─── Stat cards config ────────────────────────────────────────────────────────
 const CARDS = [
   { label: "Total Projects", key: "total"        },
   { label: "Closed",         key: "closed"       },
@@ -59,11 +59,10 @@ const DeptChart = ({ data, isMobile }) => {
       t > 0 ? Math.round((closed[i] / t) * 100) : 0
     );
 
-    // ── Fix #2: cancel flag prevents race condition on rapid re-renders ──
     let cancelled = false;
 
     import("highcharts").then((HighchartsModule) => {
-      if (cancelled) return; // stale import — discard
+      if (cancelled) return;
 
       const HC = HighchartsModule.default ?? HighchartsModule;
 
@@ -182,7 +181,7 @@ const DeptChart = ({ data, isMobile }) => {
     });
 
     return () => {
-      cancelled = true; // cancel any in-flight import
+      cancelled = true;
       if (chartInstance.current) {
         chartInstance.current.destroy();
         chartInstance.current = null;
@@ -251,35 +250,36 @@ const DashboardHome = ({ isMobile }) => {
         </div>
       )}
 
-    <div
-  className="px-4 sm:px-6 pt-6"
-  style={{
-    display: isMobile ? "flex" : "flex",
-    flexDirection: isMobile ? "row" : "row",
-    overflowX: isMobile ? "auto" : undefined,
-    gap: isMobile ? "0.75rem" : "1rem",
-    marginTop: isMobile ? "1rem" : "-1.75rem",
-    paddingBottom: isMobile ? "0.5rem" : undefined,
-    // Prevent cards from shrinking
-    flexWrap: "nowrap",
-  }}
->
-  {CARDS.map((c) => (
-    <StatCard
-      key={c.key}
-      label={c.label}
-      value={stats ? stats[c.key] : 0}
-      loading={loading}
-    />
-  ))}
-</div>
+      <div
+        className="px-4 sm:px-6 pt-6"
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          overflowX: isMobile ? "auto" : undefined,
+          gap: isMobile ? "0.75rem" : "1rem",
+          marginTop: isMobile ? "1rem" : "-1.75rem",
+          paddingBottom: isMobile ? "0.5rem" : undefined,
+          flexWrap: "nowrap",
+        }}
+      >
+        {CARDS.map((c) => (
+          <StatCard
+            key={c.key}
+            label={c.label}
+            value={stats ? stats[c.key] : 0}
+            loading={loading}
+          />
+        ))}
+      </div>
 
-      {!loading && deptData.length > 0 &&(  <>
-       <p className="text-[20px] font-semibold text-[#1A2B4A] ml-10 mt-10">
-        Department wise - Total Vs Closed
-      </p>
-       <DeptChart data={deptData} isMobile={isMobile} />
-      </>)}
+      {!loading && deptData.length > 0 && (
+        <>
+          <p className="text-[20px] font-semibold text-[#1A2B4A] ml-10 mt-10">
+            Department wise - Total Vs Closed
+          </p>
+          <DeptChart data={deptData} isMobile={isMobile} />
+        </>
+      )}
 
       {loading && (
         <div
@@ -297,13 +297,11 @@ const DashboardHome = ({ isMobile }) => {
 export default function DashboardPage({ onLogout, user }) {
   const isMobile = useIsMobile();
 
-  // Fix #4: track history stack so back always goes to the real previous page
   const [pageStack, setPageStack] = useState(["dashboard"]);
   const activePage = pageStack[pageStack.length - 1];
 
   const setActivePage = (page) => {
     setPageStack((prev) => {
-      // Avoid duplicate consecutive entries
       if (prev[prev.length - 1] === page) return prev;
       return [...prev, page];
     });
@@ -321,9 +319,8 @@ export default function DashboardPage({ onLogout, user }) {
 
   const showBack = pageStack.length > 1;
 
-  // Fix #3: header height constant used for precise main scroll area
-  const HEADER_H  = 56; // px — adjust if your Header is taller
-  const BOTTOM_NAV_H = 60; // px — mobile tab bar height
+  const HEADER_H     = 56;
+  const BOTTOM_NAV_H = 60;
 
   return (
     <div
@@ -349,14 +346,13 @@ export default function DashboardPage({ onLogout, user }) {
           isMobile={isMobile}
         />
 
-        {/* Fix #3: explicit height so inner content scrolls correctly on mobile */}
         <main
           className="flex-1 w-full relative z-10"
           style={
             isMobile
               ? {
                   overflowY: "auto",
-                  height: `calc(100dvh - ${HEADER_H}px - ${BOTTOM_NAV_H}px - env(safe-area-inset-bottom))`,
+                  paddingBottom: `calc(${BOTTOM_NAV_H}px + env(safe-area-inset-bottom))`,
                 }
               : {}
           }
