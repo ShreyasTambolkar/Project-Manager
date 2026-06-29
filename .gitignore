@@ -1,0 +1,46 @@
+# ─── Secrets & Environment Variables ───
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ─── Python / Backend (project_api) ───
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+env.bak/
+venv.bak/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ─── Node.js / Frontend (project) ───
+node_modules/
+dist/
+dist-ssr/
+build/
+.npm/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── IDE & OS Files ───
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
