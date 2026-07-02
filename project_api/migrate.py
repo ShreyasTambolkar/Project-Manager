@@ -66,11 +66,18 @@ def run_migration(cursor, name, filepath):
     # Split on semicolons to handle multi-statement files
     statements = [s.strip() for s in sql.split(";") if s.strip()]
     for statement in statements:
-        # Skip delimiter commands and procedure syntax (handled separately)
+        # Skip comments-only blocks
         upper = statement.upper()
         if upper.startswith("DELIMITER"):
             continue
-        cursor.execute(statement)
+        try:
+            cursor.execute(statement)
+        except mysql.connector.Error as err:
+            # 1060 = Duplicate column (already exists) — safe to skip
+            # 1050 = Table already exists — safe to skip
+            if err.errno in (1060, 1050):
+                continue
+            raise
 
     # Record the migration as applied
     cursor.execute(
@@ -85,12 +92,12 @@ def show_status(cursor, migrations_dir):
     all_files = sorted(glob.glob(os.path.join(migrations_dir, "*.sql")))
 
     print("\n  Migration Status")
-    print("  " + "─" * 50)
+    print("  " + "-" * 50)
     for filepath in all_files:
         name = os.path.basename(filepath)
-        mark = "✔  Applied" if name in applied else "…  Pending"
-        print(f"  {mark}  │  {name}")
-    print("  " + "─" * 50)
+        mark = "[OK]      Applied" if name in applied else "[PENDING] Pending"
+        print(f"  {mark}  |  {name}")
+    print("  " + "-" * 50)
     print()
 
 
@@ -119,7 +126,7 @@ def main():
     pending = get_pending_migrations(cursor, migrations_dir)
 
     if not pending:
-        print("\n  ✔ All migrations are already applied. Nothing to do.\n")
+        print("\n  [OK] All migrations are already applied. Nothing to do.\n")
         cursor.close()
         conn.close()
         return
@@ -130,10 +137,10 @@ def main():
         try:
             run_migration(cursor, name, filepath)
             conn.commit()
-            print(f"  ✔ Applied: {name}")
+            print(f"  [OK] Applied: {name}")
         except mysql.connector.Error as err:
             conn.rollback()
-            print(f"  ✖ FAILED:  {name}  →  {err}")
+            print(f"  [FAILED] {name} -> {err}")
             sys.exit(1)
 
     print(f"\n  Done! {len(pending)} migration(s) applied successfully.\n")

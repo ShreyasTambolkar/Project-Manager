@@ -1,6 +1,20 @@
-Write-Host "`n  Starting all API microservices...`n" -ForegroundColor Cyan
+Write-Host "`n  Starting full stack (Frontend + APIs)...`n" -ForegroundColor Cyan
 
-$base = "d:\Internship\Assignment_4\project_api"
+$base     = "d:\Internship\Assignment_4\project_api"
+$frontend = "d:\Internship\Assignment_4\project"
+
+# ─── Run migrations first ─────────────────────────────────────
+Write-Host "  Running database migrations..." -ForegroundColor DarkYellow
+Push-Location $base
+python migrate.py
+$migrateExit = $LASTEXITCODE
+Pop-Location
+
+if ($migrateExit -ne 0) {
+    Write-Host "`n  [ERROR] Migrations failed. Fix the issue and try again.`n" -ForegroundColor Red
+    exit 1
+}
+Write-Host "  Migrations complete!`n" -ForegroundColor Green
 
 $services = @(
     @{ Name = "Auth API";    Port = 5000; Dir = "$base\auth_api" },
@@ -22,7 +36,17 @@ foreach ($svc in $services) {
     Write-Host "  [STARTED] $($svc.Name) -> http://localhost:$($svc.Port)" -ForegroundColor Green
 }
 
-Write-Host "`n  All services started! Press Ctrl+C to stop all.`n" -ForegroundColor Yellow
+# ─── Start Frontend (Vite React) ──────────────────────────────
+$frontendJob = Start-Job -Name "Frontend" -ScriptBlock {
+    param($dir)
+    Set-Location $dir
+    npm run dev 2>&1
+} -ArgumentList $frontend
+
+$jobs += $frontendJob
+Write-Host "  [STARTED] Frontend  -> http://localhost:5173" -ForegroundColor White
+
+Write-Host "`n  Full stack running! Press Ctrl+C to stop all.`n" -ForegroundColor Yellow
 Write-Host "  Streaming logs below..." -ForegroundColor DarkGray
 Write-Host "  ----------------------------------------" -ForegroundColor DarkGray
 
@@ -36,7 +60,8 @@ try {
                     "Charts API"  { "Cyan" }
                     "Listing API" { "Yellow" }
                     "Create API"  { "Green" }
-                    default       { "White" }
+                    "Frontend"    { "White" }
+                    default       { "DarkGray" }
                 }
                 Write-Host "  [$($job.Name)] $_" -ForegroundColor $color
             }

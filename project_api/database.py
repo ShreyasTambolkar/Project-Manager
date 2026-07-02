@@ -96,27 +96,15 @@ def build_sample_projects():
 
 
 def init_db():
+    """
+    Seed sample projects if the table is empty.
+    Schema creation and user seeding are now handled by migration scripts.
+    Run `python migrate.py` before starting the app for the first time.
+    """
     conn   = get_connection()
     cursor = conn.cursor()
 
-    # ─── Projects table ───────────────────────────────────────────
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS projects (
-            project_id   INT AUTO_INCREMENT PRIMARY KEY,
-            project_name VARCHAR(255) NOT NULL,
-            start_date   DATE,
-            end_date     DATE,
-            reason       VARCHAR(255),
-            type         VARCHAR(100),
-            division     VARCHAR(100),
-            category     VARCHAR(100),
-            priority     VARCHAR(50),
-            department   VARCHAR(100),
-            location     VARCHAR(100),
-            status       VARCHAR(100)
-        )
-    ''')
-
+    # ─── Seed projects if table is empty ──────────────────────────
     cursor.execute("SELECT COUNT(*) FROM projects")
     count = cursor.fetchone()[0]
 
@@ -129,48 +117,6 @@ def init_db():
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', sample_projects)
         print(f"{len(sample_projects)} sample projects inserted!")
-
-    # ─── Users table ──────────────────────────────────────────────
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS users_12 (
-            id                  INT AUTO_INCREMENT PRIMARY KEY,
-            email               VARCHAR(255) UNIQUE NOT NULL,
-            password            VARCHAR(255) NOT NULL,
-            reset_token         VARCHAR(100) DEFAULT NULL,
-            reset_token_expiry  DATETIME DEFAULT NULL
-        )
-    ''')
-
-    # ── Add columns if table already existed without them ─────────
-    # (safe to run every startup — silently skips if column exists)
-    for col, definition in [
-        ("reset_token",        "VARCHAR(100) DEFAULT NULL"),
-        ("reset_token_expiry", "DATETIME DEFAULT NULL"),
-    ]:
-        try:
-            cursor.execute(f"ALTER TABLE users_12 ADD COLUMN {col} {definition}")
-            print(f"Column '{col}' added to users_12.")
-        except mysql.connector.Error as err:
-            if err.errno == 1060:  # Duplicate column — already exists, ignore
-                pass
-            else:
-                raise
-
-    cursor.execute("SELECT COUNT(*) FROM users_12")
-    user_count = cursor.fetchone()[0]
-
-    if user_count == 0:
-        sample_users = [
-            ("alice@projects.com", hash_password("Alice@123")),
-            ("bob@projects.com",   hash_password("Bob@456")),
-        ]
-        cursor.executemany('''
-            INSERT INTO users_12 (email, password)
-            VALUES (%s, %s)
-        ''', sample_users)
-        print("Sample users inserted!")
-        print("  alice@projects.com  →  Alice@123")
-        print("  bob@projects.com    →  Bob@456")
 
     conn.commit()
     cursor.close()
