@@ -7,6 +7,8 @@ from mail import mail
 from routes.auth import auth_bp
 
 app = Flask(__name__)
+from logger_setup import setup_logging
+setup_logging(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # Mail config

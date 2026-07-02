@@ -11,6 +11,8 @@ from database import init_db
 from routes.create import create_bp
 
 app = Flask(__name__)
+from logger_setup import setup_logging
+setup_logging(app)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 app.register_blueprint(create_bp)

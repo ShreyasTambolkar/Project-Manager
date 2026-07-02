@@ -17,42 +17,59 @@ auth_bp = Blueprint("auth", __name__)
 # ─── Login ────────────────────────────────────────────────────────────────────
 @auth_bp.route("/login", methods=["POST"])
 def login():
-    data = request.get_json()
-    email    = data.get("email", "").strip()
-    password = data.get("password", "").strip()
+    conn = None
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON body."}), 400
 
-    if not email or not password:
-        return jsonify({"error": "Email and password are required."}), 400
+        email    = data.get("email", "").strip()
+        password = data.get("password", "").strip()
 
-    conn   = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users_12 WHERE email = %s", (email,))
-    row = cursor.fetchone()
-    conn.close()
+        if not email or not password:
+            return jsonify({"error": "Email and password are required."}), 400
 
-    if not row:
-        return jsonify({"error": "Email not found."}), 401
+        conn   = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users_12 WHERE email = %s", (email,))
+        row = cursor.fetchone()
 
-    user = row_to_dict(cursor, row)
-    if user["password"] != hash_password(password):
-        return jsonify({"error": "Incorrect password."}), 401
+        if not row:
+            return jsonify({"error": "Email not found."}), 401
 
-    return jsonify({
-        "message": "Login successful.",
-        "user": {"id": user["id"], "email": user["email"]}
-    }), 200
+        user = row_to_dict(cursor, row)
+        if user["password"] != hash_password(password):
+            return jsonify({"error": "Incorrect password."}), 401
+
+        return jsonify({
+            "message": "Login successful.",
+            "user": {"id": user["id"], "email": user["email"]}
+        }), 200
+
+    except Exception as e:
+        print("=" * 60)
+        print("LOGIN ERROR:", str(e))
+        print("=" * 60)
+        return jsonify({"error": "Something went wrong. Please try again later."}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 # ─── Forgot Password ──────────────────────────────────────────────────────────
 @auth_bp.route("/forgot-password", methods=["POST"])
 def forgot_password():
-    data  = request.get_json()
-    email = data.get("email", "").strip().lower()
-
-    if not email:
-        return jsonify({"error": "Email is required."}), 400
-
+    conn = None
     try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON body."}), 400
+
+        email = data.get("email", "").strip().lower()
+
+        if not email:
+            return jsonify({"error": "Email is required."}), 400
+
         conn   = get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM users_12 WHERE email = %s", (email,))
@@ -60,7 +77,6 @@ def forgot_password():
 
         # Don't reveal whether email exists
         if not row:
-            conn.close()
             return jsonify({"message": "If that email is registered, a reset link has been sent."}), 200
 
         # Generate token valid for 1 hour
@@ -72,7 +88,6 @@ def forgot_password():
             (token, expiry, email)
         )
         conn.commit()
-        conn.close()
 
         # Build reset link
         frontend_url = Config.FRONTEND_URL
@@ -108,24 +123,31 @@ def forgot_password():
         print("=" * 60)
         print("FORGOT PASSWORD ERROR:", str(e))
         print("=" * 60)
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
+        return jsonify({"error": "Something went wrong. Please try again later."}), 500
+    finally:
+        if conn:
+            conn.close()
 
 
 
 # ─── Reset Password ──────────────────────────────────────────────────────────
 @auth_bp.route("/reset-password", methods=["POST"])
 def reset_password():
-    data     = request.get_json()
-    token    = data.get("token", "").strip()
-    password = data.get("password", "").strip()
-
-    if not token or not password:
-        return jsonify({"error": "Token and new password are required."}), 400
-
-    if len(password) < 6:
-        return jsonify({"error": "Password must be at least 6 characters."}), 400
-
+    conn = None
     try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid or missing JSON body."}), 400
+
+        token    = data.get("token", "").strip()
+        password = data.get("password", "").strip()
+
+        if not token or not password:
+            return jsonify({"error": "Token and new password are required."}), 400
+
+        if len(password) < 6:
+            return jsonify({"error": "Password must be at least 6 characters."}), 400
+
         conn   = get_connection()
         cursor = conn.cursor()
 
@@ -136,7 +158,6 @@ def reset_password():
         row = cursor.fetchone()
 
         if not row:
-            conn.close()
             return jsonify({"error": "Invalid or expired reset link."}), 400
 
         user = row_to_dict(cursor, row)
@@ -149,7 +170,6 @@ def reset_password():
                 (user["id"],)
             )
             conn.commit()
-            conn.close()
             return jsonify({"error": "Reset link has expired. Please request a new one."}), 400
 
         # Update password and clear token
@@ -158,7 +178,6 @@ def reset_password():
             (hash_password(password), user["id"])
         )
         conn.commit()
-        conn.close()
 
         return jsonify({"message": "Password reset successfully! You can now log in."}), 200
 
@@ -166,5 +185,7 @@ def reset_password():
         print("=" * 60)
         print("RESET PASSWORD ERROR:", str(e))
         print("=" * 60)
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
-
+        return jsonify({"error": "Something went wrong. Please try again later."}), 500
+    finally:
+        if conn:
+            conn.close()
