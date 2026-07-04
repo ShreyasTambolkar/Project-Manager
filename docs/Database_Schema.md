@@ -6,22 +6,31 @@ Database name: project_db
 
 ## Tables
 
+### departments
+
+| Column | Type         | Notes                       |
+|--------|--------------|-----------------------------|
+| id     | INT          | Primary key, auto-increment |
+| name   | VARCHAR(100) | Unique, not null            |
+
+
 ### projects
 
-| Column       | Type         | Notes                |
-|--------------|--------------|----------------------|
-| project_id   | INT          | Primary key, auto-increment |
-| project_name | VARCHAR(255) | Not null             |
-| start_date   | DATE         |                      |
-| end_date     | DATE         |                      |
-| reason       | VARCHAR(255) | Business, Dealership, Transport, Compliance, Safety, Vendor |
-| type         | VARCHAR(100) | Internal, External, Vendor |
-| division     | VARCHAR(100) | Compressor, Filters, Pumps, Glass, Water Heater, Electronics, Packaging |
-| category     | VARCHAR(100) | Quality A, Quality B, Quality C, Quality D |
-| priority     | VARCHAR(50)  | High, Medium, Low    |
-| department   | VARCHAR(100) | Strategy, Finance, Quality, Maintenance, Stores, HR |
-| location     | VARCHAR(100) | Pune, Delhi, Mumbai, Chennai, Bangalore |
-| status       | VARCHAR(100) | Registered, Running, Closed, Cancelled |
+| Column        | Type         | Notes                |
+|---------------|--------------|----------------------|
+| project_id    | INT          | Primary key, auto-increment |
+| project_name  | VARCHAR(255) | Not null             |
+| start_date    | DATE         |                      |
+| end_date      | DATE         |                      |
+| reason        | VARCHAR(255) | Business, Dealership, Transport, Compliance, Safety, Vendor |
+| type          | VARCHAR(100) | Internal, External, Vendor |
+| division      | VARCHAR(100) | Compressor, Filters, Pumps, Glass, Water Heater, Electronics, Packaging |
+| category      | VARCHAR(100) | Quality A, Quality B, Quality C, Quality D |
+| priority      | VARCHAR(50)  | High, Medium, Low    |
+| department    | VARCHAR(100) | Strategy, Finance, Quality, Maintenance, Stores, HR (Legacy text field) |
+| location      | VARCHAR(100) | Pune, Delhi, Mumbai, Chennai, Bangalore |
+| status        | VARCHAR(100) | Registered, Running, Closed, Cancelled |
+| department_id | INT          | Foreign key to departments(id) |
 
 
 ### users_12
@@ -33,6 +42,7 @@ Database name: project_db
 | password           | VARCHAR(255) | SHA-256 hashed, not null |
 | reset_token        | VARCHAR(100) | Used for forgot-password flow |
 | reset_token_expiry | DATETIME     | Token expiration time |
+| department_id      | INT          | Foreign key to departments(id) |
 
 
 ### migration_history
@@ -45,6 +55,11 @@ Database name: project_db
 
 This table is created automatically by migrate.py to track which migrations have been applied.
 
+
+## Relationships
+
+- `projects.department_id` references `departments.id`
+- `users_12.department_id` references `departments.id`
 
 ## Sample Data
 

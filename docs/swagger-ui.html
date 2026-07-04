@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project Management API — Swagger Documentation</title>
+  <meta name="description" content="Interactive API documentation for the Project Management microservices REST API, built with Swagger UI and OpenAPI 3.0." />
+  <link rel="stylesheet" href="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui.css" />
+  <style>
+    /* ── Custom branding overrides ── */
+    :root {
+      --primary:   #1e3a8a;
+      --primary-l: #3b82f6;
+      --bg-dark:   #0f172a;
+      --bg-card:   #1e293b;
+      --text:      #e2e8f0;
+    }
+
+    html { box-sizing: border-box; }
+    *, *::before, *::after { box-sizing: inherit; }
+
+    body {
+      margin: 0;
+      background: var(--bg-dark);
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    /* Hero banner */
+    .api-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, #6366f1 100%);
+      padding: 48px 32px 36px;
+      text-align: center;
+      color: #fff;
+    }
+    .api-hero h1 {
+      margin: 0 0 8px;
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+    .api-hero p {
+      margin: 0;
+      font-size: 1.05rem;
+      opacity: 0.85;
+    }
+    .api-hero .badges {
+      margin-top: 18px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .api-hero .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,255,255,0.15);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+    .badge .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .badge .dot.green  { background: #4ade80; }
+    .badge .dot.blue   { background: #60a5fa; }
+    .badge .dot.amber  { background: #fbbf24; }
+    .badge .dot.purple { background: #c084fc; }
+    .badge .dot.rose   { background: #fb7185; }
+
+    /* Swagger UI container */
+    #swagger-ui {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 16px 60px;
+    }
+
+    /* ── Dark-mode tweaks for Swagger UI ── */
+    .swagger-ui .topbar { display: none; }
+
+    .swagger-ui .info {
+      margin: 32px 0 20px;
+    }
+    .swagger-ui .info hgroup.main h2 {
+      display: none;  /* hide duplicate title */
+    }
+    .swagger-ui .info .description p,
+    .swagger-ui .info .description li {
+      color: var(--text);
+    }
+    .swagger-ui .info .description table {
+      border-collapse: collapse;
+    }
+    .swagger-ui .info .description table th,
+    .swagger-ui .info .description table td {
+      border: 1px solid #334155;
+      padding: 6px 14px;
+      color: var(--text);
+    }
+    .swagger-ui .info .description table th {
+      background: #1e293b;
+    }
+
+    .swagger-ui .scheme-container {
+      background: var(--bg-card);
+      box-shadow: none;
+      border: 1px solid #334155;
+      border-radius: 10px;
+      padding: 12px 20px;
+    }
+
+    .swagger-ui .opblock-tag {
+      border-bottom-color: #334155;
+      color: var(--text);
+    }
+    .swagger-ui .opblock-tag:hover { background: rgba(59,130,246,0.06); }
+
+    .swagger-ui .opblock {
+      border-radius: 10px;
+      border: none;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      margin-bottom: 10px;
+    }
+
+    .swagger-ui .opblock .opblock-summary {
+      border-radius: 10px;
+    }
+
+    .swagger-ui .opblock .opblock-summary-description,
+    .swagger-ui .opblock .opblock-description-wrapper p,
+    .swagger-ui .opblock .opblock-section-header h4,
+    .swagger-ui .opblock .opblock-section-header label,
+    .swagger-ui table thead tr th,
+    .swagger-ui table tbody tr td,
+    .swagger-ui .response-col_status,
+    .swagger-ui .response-col_description,
+    .swagger-ui .response-col_links,
+    .swagger-ui .parameter__name,
+    .swagger-ui .parameter__type,
+    .swagger-ui .parameter__in {
+      color: var(--text) !important;
+    }
+
+    .swagger-ui .opblock-body pre.microlight,
+    .swagger-ui .highlight-code pre {
+      background: #0f172a !important;
+      border-radius: 8px;
+      border: 1px solid #334155;
+    }
+
+    .swagger-ui .model-box,
+    .swagger-ui section.models {
+      background: var(--bg-card);
+      border: 1px solid #334155;
+      border-radius: 10px;
+    }
+    .swagger-ui section.models h4 span { color: var(--text); }
+    .swagger-ui .model { color: var(--text); }
+
+    .swagger-ui .btn { border-radius: 6px; }
+
+    /* Tag descriptions */
+    .swagger-ui .opblock-tag small { color: #94a3b8; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+
+    /* Footer */
+    .api-footer {
+      text-align: center;
+      padding: 24px;
+      color: #64748b;
+      font-size: 0.82rem;
+      border-top: 1px solid #1e293b;
+    }
+    .api-footer a { color: var(--primary-l); text-decoration: none; }
+    .api-footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Hero Banner -->
+  <header class="api-hero">
+    <h1>📊 Project Management API</h1>
+    <p>Interactive OpenAPI 3.0 Documentation — 5 Microservices</p>
+    <div class="badges">
+      <span class="badge"><span class="dot green"></span>Auth :5000</span>
+      <span class="badge"><span class="dot blue"></span>Stats :5001</span>
+      <span class="badge"><span class="dot amber"></span>Charts :5002</span>
+      <span class="badge"><span class="dot purple"></span>Listing :5003</span>
+      <span class="badge"><span class="dot rose"></span>Create :5004</span>
+    </div>
+  </header>
+
+  <!-- Swagger UI target -->
+  <div id="swagger-ui"></div>
+
+  <!-- Footer -->
+  <footer class="api-footer">
+    Generated with <a href="https://swagger.io/tools/swagger-ui/" target="_blank" rel="noopener">Swagger UI</a>
+    &nbsp;·&nbsp; OpenAPI 3.0.3
+  </footer>
+
+  <!-- Swagger UI Bundle -->
+  <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.17.14/swagger-ui-standalone-preset.js"></script>
+  <script>
+    // ── Inline OpenAPI spec (JSON) ──────────────────────────────────────────
+    const spec = {
+      "openapi": "3.0.3",
+      "info": {
+        "title": "Project Management API",
+        "description": "A **microservices-based** Project Management REST API built with Flask.\n\nThe system is composed of **5 independent services**, each running on its own port:\n\n| Service | Port | Purpose |\n|---------|------|---------|\n| **Auth API** | `5000` | User login, forgot-password, reset-password |\n| **Stats API** | `5001` | Dashboard counters (total, running, etc.) |\n| **Charts API** | `5002` | Department-wise aggregated statistics |\n| **Listing API** | `5003` | List, search, sort, and manage project status |\n| **Create API** | `5004` | Create new projects |\n\n---\n\n### Authentication\nThe API uses **email + SHA-256 hashed password** authentication. Login returns user info on success.\n\n### Database\nMySQL (`project_db`) with tables: `projects`, `users_12`, `departments`, `migration_history`.",
+        "version": "1.0.0",
+        "contact": { "name": "Project Management Team" },
+        "license": { "name": "MIT", "url": "https://opensource.org/licenses/MIT" }
+      },
+      "servers": [
+        { "url": "http://localhost:5000", "description": "Auth API" },
+        { "url": "http://localhost:5001", "description": "Stats API" },
+        { "url": "http://localhost:5002", "description": "Charts API" },
+        { "url": "http://localhost:5003", "description": "Listing API" },
+        { "url": "http://localhost:5004", "description": "Create API" }
+      ],
+      "tags": [
+        { "name": "Auth", "description": "User authentication — login, forgot-password, reset-password" },
+        { "name": "Stats", "description": "Dashboard project counters" },
+        { "name": "Charts", "description": "Department-wise aggregated chart data" },
+        { "name": "Listing", "description": "List, search, sort projects and manage project status" },
+        { "name": "Create", "description": "Create new projects" }
+      ],
+      "paths": {
+        "/login": {
+          "post": {
+            "tags": ["Auth"],
+            "summary": "User login",
+            "description": "Authenticates a user with email and password. Returns user info on success.\n\n**Server:** Auth API (`http://localhost:5000`)",
+            "operationId": "loginUser",
+            "servers": [{ "url": "http://localhost:5000", "description": "Auth API" }],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/LoginRequest" },
+                  "example": { "email": "alice@projects.com", "password": "Alice@123" }
+                }
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Login successful",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/LoginSuccessResponse" },
+                    "example": { "message": "Login successful.", "user": { "id": 1, "email": "alice@projects.com" } }
+                  }
+                }
+              },
+              "400": {
+                "description": "Missing or invalid JSON body / Missing email or password",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                    "examples": {
+                      "missingBody": { "summary": "No JSON body", "value": { "error": "Invalid or missing JSON body." } },
+                      "missingFields": { "summary": "Missing email or password", "value": { "error": "Email and password are required." } }
+                    }
+                  }
+                }
+              },
+              "401": {
+                "description": "Authentication failed",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                    "examples": {
+                      "emailNotFound": { "summary": "Email not registered", "value": { "error": "Email not found." } },
+                      "wrongPassword": { "summary": "Incorrect password", "value": { "error": "Incorrect password." } }
+                    }
+                  }
+                }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/forgot-password": {
+          "post": {
+            "tags": ["Auth"],
+            "summary": "Request password reset",
+            "description": "Generates a reset token (valid for 1 hour) and sends a password-reset email.\n\nFor security, the response is the same whether or not the email exists.\n\n**Server:** Auth API (`http://localhost:5000`)",
+            "operationId": "forgotPassword",
+            "servers": [{ "url": "http://localhost:5000", "description": "Auth API" }],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ForgotPasswordRequest" },
+                  "example": { "email": "alice@projects.com" }
+                }
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Reset link sent (same response regardless of email existence)",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/MessageResponse" },
+                    "example": { "message": "If that email is registered, a reset link has been sent." }
+                  }
+                }
+              },
+              "400": {
+                "description": "Missing or invalid JSON body / Missing email",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                    "examples": {
+                      "missingBody": { "summary": "No JSON body", "value": { "error": "Invalid or missing JSON body." } },
+                      "missingEmail": { "summary": "Missing email", "value": { "error": "Email is required." } }
+                    }
+                  }
+                }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/reset-password": {
+          "post": {
+            "tags": ["Auth"],
+            "summary": "Reset password using token",
+            "description": "Resets the user's password using the token received via email. The token must be valid and not expired (1-hour window).\n\n**Server:** Auth API (`http://localhost:5000`)",
+            "operationId": "resetPassword",
+            "servers": [{ "url": "http://localhost:5000", "description": "Auth API" }],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/ResetPasswordRequest" },
+                  "example": { "token": "dG9rZW5fZXhhbXBsZV9zdHJpbmc", "password": "NewSecurePass@456" }
+                }
+              }
+            },
+            "responses": {
+              "200": {
+                "description": "Password reset successful",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/MessageResponse" },
+                    "example": { "message": "Password reset successfully! You can now log in." }
+                  }
+                }
+              },
+              "400": {
+                "description": "Validation error or invalid/expired token",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                    "examples": {
+                      "missingBody": { "summary": "No JSON body", "value": { "error": "Invalid or missing JSON body." } },
+                      "missingFields": { "summary": "Missing token or password", "value": { "error": "Token and new password are required." } },
+                      "shortPassword": { "summary": "Password too short", "value": { "error": "Password must be at least 6 characters." } },
+                      "invalidToken": { "summary": "Invalid or expired token", "value": { "error": "Invalid or expired reset link." } },
+                      "expiredToken": { "summary": "Token expired", "value": { "error": "Reset link has expired. Please request a new one." } }
+                    }
+                  }
+                }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/projects/stats": {
+          "get": {
+            "tags": ["Stats"],
+            "summary": "Get project statistics",
+            "description": "Returns aggregated project counters for the dashboard: total projects, closed, running, cancelled, and closure-delayed (running projects whose end date has already passed).\n\n**Server:** Stats API (`http://localhost:5001`)",
+            "operationId": "getProjectStats",
+            "servers": [{ "url": "http://localhost:5001", "description": "Stats API" }],
+            "responses": {
+              "200": {
+                "description": "Statistics retrieved successfully",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/ProjectStatsResponse" },
+                    "example": { "total": 40, "closed": 29, "running": 5, "cancelled": 3, "closure_delay": 2 }
+                  }
+                }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/projects/chart/dept-stats": {
+          "get": {
+            "tags": ["Charts"],
+            "summary": "Get department-wise project statistics",
+            "description": "Returns project count and closed-project count grouped by department. Useful for rendering bar/pie charts on the dashboard.\n\n**Server:** Charts API (`http://localhost:5002`)",
+            "operationId": "getDeptStats",
+            "servers": [{ "url": "http://localhost:5002", "description": "Charts API" }],
+            "responses": {
+              "200": {
+                "description": "Department statistics retrieved successfully",
+                "content": {
+                  "application/json": {
+                    "schema": { "type": "array", "items": { "$ref": "#/components/schemas/DeptStatsItem" } },
+                    "example": [
+                      { "department": "Finance", "total": 4, "closed": 3 },
+                      { "department": "HR", "total": 6, "closed": 5 },
+                      { "department": "Maintenance", "total": 7, "closed": 7 },
+                      { "department": "Quality", "total": 9, "closed": 8 },
+                      { "department": "Stores", "total": 5, "closed": 2 },
+                      { "department": "Strategy", "total": 9, "closed": 4 }
+                    ]
+                  }
+                }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/projects": {
+          "get": {
+            "tags": ["Listing"],
+            "summary": "Get all projects",
+            "description": "Returns all projects. Supports an optional search query to filter projects by name (partial match via SQL `LIKE`).\n\n**Server:** Listing API (`http://localhost:5003`)",
+            "operationId": "getAllProjects",
+            "servers": [{ "url": "http://localhost:5003", "description": "Listing API" }],
+            "parameters": [{
+              "name": "q",
+              "in": "query",
+              "required": false,
+              "description": "Search term to filter projects by name (partial match)",
+              "schema": { "type": "string" },
+              "example": "Filter"
+            }],
+            "responses": {
+              "200": {
+                "description": "Projects retrieved successfully",
+                "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } } } }
+              },
+              "404": {
+                "description": "No projects found",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "No projects found!" } } }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          },
+          "post": {
+            "tags": ["Create"],
+            "summary": "Create a new project",
+            "description": "Creates a new project in the database.\n\n**Required fields:** `project_name`\n\n**Defaults:** `priority` → `Medium`, `status` → `Registered`\n\n**Server:** Create API (`http://localhost:5004`)",
+            "operationId": "createProject",
+            "servers": [{ "url": "http://localhost:5004", "description": "Create API" }],
+            "requestBody": {
+              "required": true,
+              "content": {
+                "application/json": {
+                  "schema": { "$ref": "#/components/schemas/CreateProjectRequest" },
+                  "example": {
+                    "project_name": "New Valve Installation",
+                    "start_date": "2024-01-15",
+                    "end_date": "2024-06-30",
+                    "reason": "Business",
+                    "type": "Internal",
+                    "division": "Compressor",
+                    "category": "Quality A",
+                    "priority": "High",
+                    "department": "Strategy",
+                    "location": "Pune",
+                    "status": "Registered"
+                  }
+                }
+              }
+            },
+            "responses": {
+              "201": {
+                "description": "Project created successfully",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "Project added successfully!" } } }
+              },
+              "400": {
+                "description": "Validation error",
+                "content": {
+                  "application/json": {
+                    "schema": { "$ref": "#/components/schemas/MessageResponse" },
+                    "examples": {
+                      "missingBody": { "summary": "No JSON body", "value": { "message": "Invalid or missing JSON body." } },
+                      "missingFields": { "summary": "Missing required field", "value": { "message": "Missing fields: project_name" } },
+                      "invalidPriority": { "summary": "Invalid priority", "value": { "message": "Priority must be one of ['High', 'Medium', 'Low']" } },
+                      "invalidStatus": { "summary": "Invalid status", "value": { "message": "Status must be one of ['Running', 'Registered', 'Cancelled', 'Closed']" } },
+                      "invalidDate": { "summary": "End date before start date", "value": { "message": "End date cannot be before start date." } },
+                      "badDateFormat": { "summary": "Bad date format", "value": { "message": "Invalid date format. Use YYYY-MM-DD." } }
+                    }
+                  }
+                }
+              },
+              "409": {
+                "description": "Project name already exists",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "This project already exists!" } } }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/projects/sorted": {
+          "get": {
+            "tags": ["Listing"],
+            "summary": "Get projects sorted",
+            "description": "Returns all projects sorted by the specified field.\n\n**Sort options:**\n- `priority` (default) — High → Medium → Low\n- `status` — Running → Registered → Closed → Cancelled\n- `name` — Alphabetical A → Z\n\n**Server:** Listing API (`http://localhost:5003`)",
+            "operationId": "getProjectsSorted",
+            "servers": [{ "url": "http://localhost:5003", "description": "Listing API" }],
+            "parameters": [{
+              "name": "sort",
+              "in": "query",
+              "required": false,
+              "description": "Field to sort by. Accepted values: priority (default), status, name.",
+              "schema": { "type": "string", "enum": ["priority", "status", "name"], "default": "priority" },
+              "example": "priority"
+            }],
+            "responses": {
+              "200": {
+                "description": "Sorted projects retrieved successfully",
+                "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Project" } } } }
+              },
+              "404": {
+                "description": "No projects found",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "No projects found!" } } }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/projects/{id}/start": {
+          "post": {
+            "tags": ["Listing"],
+            "summary": "Start a project",
+            "description": "Sets the status of the specified project to **Running**.\n\n**Server:** Listing API (`http://localhost:5003`)",
+            "operationId": "startProject",
+            "servers": [{ "url": "http://localhost:5003", "description": "Listing API" }],
+            "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+            "responses": {
+              "200": {
+                "description": "Project started successfully",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "Project with ID 1 status set to Running!" } } }
+              },
+              "404": {
+                "description": "Project not found",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "Project with ID 1 does not exist!" } } }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/projects/{id}/close": {
+          "post": {
+            "tags": ["Listing"],
+            "summary": "Close a project",
+            "description": "Sets the status of the specified project to **Closed**.\n\n**Server:** Listing API (`http://localhost:5003`)",
+            "operationId": "closeProject",
+            "servers": [{ "url": "http://localhost:5003", "description": "Listing API" }],
+            "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+            "responses": {
+              "200": {
+                "description": "Project closed successfully",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "Project with ID 1 status set to Closed!" } } }
+              },
+              "404": {
+                "description": "Project not found",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "Project with ID 1 does not exist!" } } }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        },
+        "/projects/{id}/cancel": {
+          "post": {
+            "tags": ["Listing"],
+            "summary": "Cancel a project",
+            "description": "Sets the status of the specified project to **Cancelled**.\n\n**Server:** Listing API (`http://localhost:5003`)",
+            "operationId": "cancelProject",
+            "servers": [{ "url": "http://localhost:5003", "description": "Listing API" }],
+            "parameters": [{ "$ref": "#/components/parameters/ProjectId" }],
+            "responses": {
+              "200": {
+                "description": "Project cancelled successfully",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "Project with ID 1 status set to Cancelled!" } } }
+              },
+              "404": {
+                "description": "Project not found",
+                "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MessageResponse" }, "example": { "message": "Project with ID 1 does not exist!" } } }
+              },
+              "500": { "$ref": "#/components/responses/InternalServerError" }
+            }
+          }
+        }
+      },
+      "components": {
+        "parameters": {
+          "ProjectId": {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Unique project ID (auto-incremented integer)",
+            "schema": { "type": "integer", "minimum": 1 },
+            "example": 1
+          }
+        },
+        "responses": {
+          "InternalServerError": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponse" },
+                "example": { "error": "Something went wrong. Please try again later." }
+              }
+            }
+          }
+        },
+        "schemas": {
+          "LoginRequest": {
+            "type": "object",
+            "required": ["email", "password"],
+            "properties": {
+              "email": { "type": "string", "format": "email", "description": "Registered user email address", "example": "alice@projects.com" },
+              "password": { "type": "string", "format": "password", "description": "User's plain-text password (hashed via SHA-256 server-side)", "example": "Alice@123" }
+            }
+          },
+          "LoginSuccessResponse": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string", "example": "Login successful." },
+              "user": {
+                "type": "object",
+                "properties": {
+                  "id": { "type": "integer", "description": "User's unique ID", "example": 1 },
+                  "email": { "type": "string", "format": "email", "description": "User's email address", "example": "alice@projects.com" }
+                }
+              }
+            }
+          },
+          "ForgotPasswordRequest": {
+            "type": "object",
+            "required": ["email"],
+            "properties": {
+              "email": { "type": "string", "format": "email", "description": "Email address to send the reset link to", "example": "alice@projects.com" }
+            }
+          },
+          "ResetPasswordRequest": {
+            "type": "object",
+            "required": ["token", "password"],
+            "properties": {
+              "token": { "type": "string", "description": "Reset token received via email", "example": "dG9rZW5fZXhhbXBsZV9zdHJpbmc" },
+              "password": { "type": "string", "format": "password", "minLength": 6, "description": "New password (minimum 6 characters)", "example": "NewSecurePass@456" }
+            }
+          },
+          "ProjectStatsResponse": {
+            "type": "object",
+            "properties": {
+              "total": { "type": "integer", "description": "Total number of projects", "example": 40 },
+              "closed": { "type": "integer", "description": "Number of closed projects", "example": 29 },
+              "running": { "type": "integer", "description": "Number of currently running projects", "example": 5 },
+              "cancelled": { "type": "integer", "description": "Number of cancelled projects", "example": 3 },
+              "closure_delay": { "type": "integer", "description": "Running projects whose end date has already passed", "example": 2 }
+            }
+          },
+          "DeptStatsItem": {
+            "type": "object",
+            "properties": {
+              "department": { "type": "string", "description": "Department name", "example": "Finance" },
+              "total": { "type": "integer", "description": "Total projects in this department", "example": 4 },
+              "closed": { "type": "integer", "description": "Closed projects in this department", "example": 3 }
+            }
+          },
+          "Project": {
+            "type": "object",
+            "properties": {
+              "project_id": { "type": "integer", "description": "Auto-incremented project ID", "example": 1 },
+              "project_name": { "type": "string", "description": "Name of the project", "example": "Filter Upgrade 1" },
+              "start_date": { "type": "string", "format": "date", "nullable": true, "description": "Project start date (YYYY-MM-DD)", "example": "2022-03-15" },
+              "end_date": { "type": "string", "format": "date", "nullable": true, "description": "Project end date (YYYY-MM-DD)", "example": "2022-09-20" },
+              "reason": { "type": "string", "nullable": true, "enum": ["Business", "Dealership", "Transport", "Compliance", "Safety", "Vendor"], "example": "Business" },
+              "type": { "type": "string", "nullable": true, "enum": ["Internal", "External", "Vendor"], "example": "Internal" },
+              "division": { "type": "string", "nullable": true, "enum": ["Compressor", "Filters", "Pumps", "Glass", "Water Heater", "Electronics", "Packaging"], "example": "Compressor" },
+              "category": { "type": "string", "nullable": true, "enum": ["Quality A", "Quality B", "Quality C", "Quality D"], "example": "Quality A" },
+              "priority": { "type": "string", "enum": ["High", "Medium", "Low"], "example": "High" },
+              "department": { "type": "string", "nullable": true, "enum": ["Strategy", "Finance", "Quality", "Maintenance", "Stores", "HR"], "example": "Strategy" },
+              "location": { "type": "string", "nullable": true, "enum": ["Pune", "Delhi", "Mumbai", "Chennai", "Bangalore"], "example": "Pune" },
+              "status": { "type": "string", "enum": ["Registered", "Running", "Closed", "Cancelled"], "example": "Running" },
+              "department_id": { "type": "integer", "nullable": true, "description": "Foreign key to departments table", "example": 1 }
+            }
+          },
+          "CreateProjectRequest": {
+            "type": "object",
+            "required": ["project_name"],
+            "properties": {
+              "project_name": { "type": "string", "description": "Unique name for the project", "example": "New Valve Installation" },
+              "start_date": { "type": "string", "format": "date", "description": "Project start date (YYYY-MM-DD)", "example": "2024-01-15" },
+              "end_date": { "type": "string", "format": "date", "description": "Project end date (YYYY-MM-DD). Must not be before start_date.", "example": "2024-06-30" },
+              "reason": { "type": "string", "enum": ["Business", "Dealership", "Transport", "Compliance", "Safety", "Vendor"], "example": "Business" },
+              "type": { "type": "string", "enum": ["Internal", "External", "Vendor"], "example": "Internal" },
+              "division": { "type": "string", "enum": ["Compressor", "Filters", "Pumps", "Glass", "Water Heater", "Electronics", "Packaging"], "example": "Compressor" },
+              "category": { "type": "string", "enum": ["Quality A", "Quality B", "Quality C", "Quality D"], "example": "Quality A" },
+              "priority": { "type": "string", "enum": ["High", "Medium", "Low"], "default": "Medium", "example": "High" },
+              "department": { "type": "string", "enum": ["Strategy", "Finance", "Quality", "Maintenance", "Stores", "HR"], "example": "Strategy" },
+              "location": { "type": "string", "enum": ["Pune", "Delhi", "Mumbai", "Chennai", "Bangalore"], "example": "Pune" },
+              "status": { "type": "string", "enum": ["Running", "Registered", "Cancelled", "Closed"], "default": "Registered", "example": "Registered" }
+            }
+          },
+          "MessageResponse": {
+            "type": "object",
+            "properties": {
+              "message": { "type": "string", "description": "Human-readable response message" }
+            }
+          },
+          "ErrorResponse": {
+            "type": "object",
+            "properties": {
+              "error": { "type": "string", "description": "Human-readable error message" }
+            }
+          }
+        }
+      }
+    };
+
+    // ── Initialise Swagger UI ────────────────────────────────────────────────
+    window.onload = () => {
+      SwaggerUIBundle({
+        spec: spec,
+        dom_id: "#swagger-ui",
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset,
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl,
+        ],
+        layout: "StandaloneLayout",
+        defaultModelsExpandDepth: 2,
+        defaultModelExpandDepth: 2,
+        docExpansion: "list",
+        filter: true,
+        showExtensions: true,
+        showCommonExtensions: true,
+        tryItOutEnabled: false,
+      });
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,857 @@
+openapi: 3.0.3
+
+info:
+  title: Project Management API
+  description: |
+    A **microservices-based** Project Management REST API built with Flask.
+
+    The system is composed of **5 independent services**, each running on its own port:
+
+    | Service       | Port   | Purpose                                  |
+    |---------------|--------|------------------------------------------|
+    | **Auth API**    | `5000` | User login, forgot-password, reset-password |
+    | **Stats API**   | `5001` | Dashboard counters (total, running, etc.)   |
+    | **Charts API**  | `5002` | Department-wise aggregated statistics       |
+    | **Listing API** | `5003` | List, search, sort, and manage project status |
+    | **Create API**  | `5004` | Create new projects                         |
+
+    ---
+
+    ### Authentication
+    The API currently uses **email + SHA-256 hashed password** authentication.
+    There is no token-based auth middleware; login returns user info on success.
+
+    ### Database
+    MySQL (`project_db`) with tables: `projects`, `users_12`, `departments`, `migration_history`.
+  version: 1.0.0
+  contact:
+    name: Project Management Team
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000
+    description: Auth API
+  - url: http://localhost:5001
+    description: Stats API
+  - url: http://localhost:5002
+    description: Charts API
+  - url: http://localhost:5003
+    description: Listing API
+  - url: http://localhost:5004
+    description: Create API
+
+tags:
+  - name: Auth
+    description: User authentication — login, forgot-password, reset-password
+  - name: Stats
+    description: Dashboard project counters
+  - name: Charts
+    description: Department-wise aggregated chart data
+  - name: Listing
+    description: List, search, sort projects and manage project status
+  - name: Create
+    description: Create new projects
+
+# ════════════════════════════════════════════════════════════════════════════════
+# PATHS
+# ════════════════════════════════════════════════════════════════════════════════
+paths:
+
+  # ──────────────────────────── AUTH API (port 5000) ────────────────────────────
+
+  /login:
+    post:
+      tags: [Auth]
+      summary: User login
+      description: |
+        Authenticates a user with email and password.
+        Returns user info on success.
+
+        **Server:** Auth API (`http://localhost:5000`)
+      operationId: loginUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            example:
+              email: alice@projects.com
+              password: Alice@123
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LoginSuccessResponse"
+              example:
+                message: Login successful.
+                user:
+                  id: 1
+                  email: alice@projects.com
+        "400":
+          description: Missing or invalid JSON body / Missing email or password
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingBody:
+                  summary: No JSON body
+                  value:
+                    error: Invalid or missing JSON body.
+                missingFields:
+                  summary: Missing email or password
+                  value:
+                    error: Email and password are required.
+        "401":
+          description: Authentication failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                emailNotFound:
+                  summary: Email not registered
+                  value:
+                    error: Email not found.
+                wrongPassword:
+                  summary: Incorrect password
+                  value:
+                    error: Incorrect password.
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      description: |
+        Generates a reset token (valid for 1 hour) and sends a
+        password-reset email to the user.
+
+        For security, the response is the same whether or not the email exists.
+
+        **Server:** Auth API (`http://localhost:5000`)
+      operationId: forgotPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+            example:
+              email: alice@projects.com
+      responses:
+        "200":
+          description: Reset link sent (same response regardless of email existence)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: If that email is registered, a reset link has been sent.
+        "400":
+          description: Missing or invalid JSON body / Missing email
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingBody:
+                  summary: No JSON body
+                  value:
+                    error: Invalid or missing JSON body.
+                missingEmail:
+                  summary: Missing email
+                  value:
+                    error: Email is required.
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password using token
+      description: |
+        Resets the user's password using the token received via email.
+        The token must be valid and not expired (1-hour window).
+
+        **Server:** Auth API (`http://localhost:5000`)
+      operationId: resetPassword
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+            example:
+              token: dG9rZW5fZXhhbXBsZV9zdHJpbmc
+              password: NewSecurePass@456
+      responses:
+        "200":
+          description: Password reset successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Password reset successfully! You can now log in."
+        "400":
+          description: Validation error or invalid/expired token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingBody:
+                  summary: No JSON body
+                  value:
+                    error: Invalid or missing JSON body.
+                missingFields:
+                  summary: Missing token or password
+                  value:
+                    error: Token and new password are required.
+                shortPassword:
+                  summary: Password too short
+                  value:
+                    error: Password must be at least 6 characters.
+                invalidToken:
+                  summary: Invalid or expired token
+                  value:
+                    error: Invalid or expired reset link.
+                expiredToken:
+                  summary: Token expired
+                  value:
+                    error: Reset link has expired. Please request a new one.
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ──────────────────────────── STATS API (port 5001) ──────────────────────────
+
+  /projects/stats:
+    get:
+      tags: [Stats]
+      summary: Get project statistics
+      description: |
+        Returns aggregated project counters for the dashboard:
+        total projects, closed, running, cancelled, and closure-delayed
+        (running projects whose end date has already passed).
+
+        **Server:** Stats API (`http://localhost:5001`)
+      operationId: getProjectStats
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectStatsResponse"
+              example:
+                total: 40
+                closed: 29
+                running: 5
+                cancelled: 3
+                closure_delay: 2
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ──────────────────────────── CHARTS API (port 5002) ─────────────────────────
+
+  /projects/chart/dept-stats:
+    get:
+      tags: [Charts]
+      summary: Get department-wise project statistics
+      description: |
+        Returns project count and closed-project count grouped by department.
+        Useful for rendering bar/pie charts on the dashboard.
+
+        **Server:** Charts API (`http://localhost:5002`)
+      operationId: getDeptStats
+      responses:
+        "200":
+          description: Department statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeptStatsItem"
+              example:
+                - department: Finance
+                  total: 4
+                  closed: 3
+                - department: HR
+                  total: 6
+                  closed: 5
+                - department: Maintenance
+                  total: 7
+                  closed: 7
+                - department: Quality
+                  total: 9
+                  closed: 8
+                - department: Stores
+                  total: 5
+                  closed: 2
+                - department: Strategy
+                  total: 9
+                  closed: 4
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  # ──────────────────────────── LISTING API (port 5003) ────────────────────────
+
+  /projects:
+    get:
+      tags: [Listing]
+      summary: Get all projects
+      description: |
+        Returns all projects. Supports an optional search query to filter
+        projects by name (partial match, case-insensitive via SQL `LIKE`).
+
+        **Server:** Listing API (`http://localhost:5003`)
+      operationId: getAllProjects
+      parameters:
+        - name: q
+          in: query
+          required: false
+          description: Search term to filter projects by name (partial match)
+          schema:
+            type: string
+          example: Filter
+      responses:
+        "200":
+          description: Projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+        "404":
+          description: No projects found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "No projects found!"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+    post:
+      tags: [Create]
+      summary: Create a new project
+      description: |
+        Creates a new project in the database.
+
+        **Required fields:** `project_name`
+
+        **Defaults:**
+        - `priority` → `Medium`
+        - `status` → `Registered`
+
+        **Server:** Create API (`http://localhost:5004`)
+      operationId: createProject
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+            example:
+              project_name: New Valve Installation
+              start_date: "2024-01-15"
+              end_date: "2024-06-30"
+              reason: Business
+              type: Internal
+              division: Compressor
+              category: Quality A
+              priority: High
+              department: Strategy
+              location: Pune
+              status: Registered
+      responses:
+        "201":
+          description: Project created successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Project added successfully!"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              examples:
+                missingBody:
+                  summary: No JSON body
+                  value:
+                    message: Invalid or missing JSON body.
+                missingFields:
+                  summary: Missing required field
+                  value:
+                    message: "Missing fields: project_name"
+                invalidPriority:
+                  summary: Invalid priority value
+                  value:
+                    message: "Priority must be one of ['High', 'Medium', 'Low']"
+                invalidStatus:
+                  summary: Invalid status value
+                  value:
+                    message: "Status must be one of ['Running', 'Registered', 'Cancelled', 'Closed']"
+                invalidDate:
+                  summary: End date before start date
+                  value:
+                    message: End date cannot be before start date.
+                badDateFormat:
+                  summary: Invalid date format
+                  value:
+                    message: Invalid date format. Use YYYY-MM-DD.
+        "409":
+          description: Project name already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "This project already exists!"
+        "500":
+          $ref: "#/components/responses/InternalServerError"          
+
+
+  /projects/sorted:
+    get:
+      tags: [Listing]
+      summary: Get projects sorted
+      description: |
+        Returns all projects sorted by the specified field.
+
+        **Sort options:**
+        - `priority` (default) — High → Medium → Low
+        - `status` — Running → Registered → Closed → Cancelled
+        - `name` — Alphabetical A → Z
+
+        **Server:** Listing API (`http://localhost:5003`)
+      operationId: getProjectsSorted
+      parameters:
+        - name: sort
+          in: query
+          required: false
+          description: |
+            Field to sort by. Accepted values: `priority` (default), `status`, `name`.
+          schema:
+            type: string
+            enum: [priority, status, name]
+            default: priority
+          example: priority
+      responses:
+        "200":
+          description: Sorted projects retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+        "404":
+          description: No projects found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "No projects found!"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /projects/{id}/start:
+    post:
+      tags: [Listing]
+      summary: Start a project
+      description: |
+        Sets the status of the specified project to **Running**.
+
+        **Server:** Listing API (`http://localhost:5003`)
+      operationId: startProject
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project started successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Project with ID 1 status set to Running!"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Project with ID 1 does not exist!"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /projects/{id}/close:
+    post:
+      tags: [Listing]
+      summary: Close a project
+      description: |
+        Sets the status of the specified project to **Closed**.
+
+        **Server:** Listing API (`http://localhost:5003`)
+      operationId: closeProject
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project closed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Project with ID 1 status set to Closed!"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Project with ID 1 does not exist!"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /projects/{id}/cancel:
+    post:
+      tags: [Listing]
+      summary: Cancel a project
+      description: |
+        Sets the status of the specified project to **Cancelled**.
+
+        **Server:** Listing API (`http://localhost:5003`)
+      operationId: cancelProject
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Project with ID 1 status set to Cancelled!"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: "Project with ID 1 does not exist!"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+
+
+
+# ════════════════════════════════════════════════════════════════════════════════
+# COMPONENTS
+# ════════════════════════════════════════════════════════════════════════════════
+components:
+
+  # ─── Parameters ─────────────────────────────────────────────────────────────
+  parameters:
+    ProjectId:
+      name: id
+      in: path
+      required: true
+      description: Unique project ID (auto-incremented integer)
+      schema:
+        type: integer
+        minimum: 1
+      example: 1
+
+  # ─── Reusable Responses ─────────────────────────────────────────────────────
+  responses:
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error: Something went wrong. Please try again later.
+
+  # ─── Schemas ────────────────────────────────────────────────────────────────
+  schemas:
+
+    # ── Auth Schemas ──
+
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Registered user email address
+          example: alice@projects.com
+        password:
+          type: string
+          format: password
+          description: User's plain-text password (hashed via SHA-256 server-side)
+          example: Alice@123
+
+    LoginSuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          example: Login successful.
+        user:
+          type: object
+          properties:
+            id:
+              type: integer
+              description: User's unique ID
+              example: 1
+            email:
+              type: string
+              format: email
+              description: User's email address
+              example: alice@projects.com
+
+    ForgotPasswordRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+          format: email
+          description: Email address to send the reset link to
+          example: alice@projects.com
+
+    ResetPasswordRequest:
+      type: object
+      required: [token, password]
+      properties:
+        token:
+          type: string
+          description: Reset token received via email
+          example: dG9rZW5fZXhhbXBsZV9zdHJpbmc
+        password:
+          type: string
+          format: password
+          minLength: 6
+          description: New password (minimum 6 characters)
+          example: NewSecurePass@456
+
+    # ── Stats Schemas ──
+
+    ProjectStatsResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of projects
+          example: 40
+        closed:
+          type: integer
+          description: Number of closed projects
+          example: 29
+        running:
+          type: integer
+          description: Number of currently running projects
+          example: 5
+        cancelled:
+          type: integer
+          description: Number of cancelled projects
+          example: 3
+        closure_delay:
+          type: integer
+          description: Running projects whose end date has already passed
+          example: 2
+
+    # ── Charts Schemas ──
+
+    DeptStatsItem:
+      type: object
+      properties:
+        department:
+          type: string
+          description: Department name
+          example: Finance
+        total:
+          type: integer
+          description: Total projects in this department
+          example: 4
+        closed:
+          type: integer
+          description: Number of closed projects in this department
+          example: 3
+
+    # ── Project Schemas ──
+
+    Project:
+      type: object
+      properties:
+        project_id:
+          type: integer
+          description: Auto-incremented project ID
+          example: 1
+        project_name:
+          type: string
+          description: Name of the project
+          example: Filter Upgrade 1
+        start_date:
+          type: string
+          format: date
+          nullable: true
+          description: Project start date (YYYY-MM-DD)
+          example: "2022-03-15"
+        end_date:
+          type: string
+          format: date
+          nullable: true
+          description: Project end date (YYYY-MM-DD)
+          example: "2022-09-20"
+        reason:
+          type: string
+          nullable: true
+          description: Reason for the project
+          enum: [Business, Dealership, Transport, Compliance, Safety, Vendor]
+          example: Business
+        type:
+          type: string
+          nullable: true
+          description: Project type
+          enum: [Internal, External, Vendor]
+          example: Internal
+        division:
+          type: string
+          nullable: true
+          description: Division handling the project
+          enum: [Compressor, Filters, Pumps, Glass, Water Heater, Electronics, Packaging]
+          example: Compressor
+        category:
+          type: string
+          nullable: true
+          description: Quality category
+          enum: [Quality A, Quality B, Quality C, Quality D]
+          example: Quality A
+        priority:
+          type: string
+          description: Project priority level
+          enum: [High, Medium, Low]
+          example: High
+        department:
+          type: string
+          nullable: true
+          description: Department responsible for the project
+          enum: [Strategy, Finance, Quality, Maintenance, Stores, HR]
+          example: Strategy
+        location:
+          type: string
+          nullable: true
+          description: Project location
+          enum: [Pune, Delhi, Mumbai, Chennai, Bangalore]
+          example: Pune
+        status:
+          type: string
+          description: Current project status
+          enum: [Registered, Running, Closed, Cancelled]
+          example: Running
+        department_id:
+          type: integer
+          nullable: true
+          description: Foreign key to the departments table
+          example: 1
+
+    CreateProjectRequest:
+      type: object
+      required: [project_name]
+      properties:
+        project_name:
+          type: string
+          description: Unique name for the project
+          example: New Valve Installation
+        start_date:
+          type: string
+          format: date
+          description: Project start date (YYYY-MM-DD)
+          example: "2024-01-15"
+        end_date:
+          type: string
+          format: date
+          description: Project end date (YYYY-MM-DD). Must not be before start_date.
+          example: "2024-06-30"
+        reason:
+          type: string
+          description: Reason for the project
+          enum: [Business, Dealership, Transport, Compliance, Safety, Vendor]
+          example: Business
+        type:
+          type: string
+          description: Project type
+          enum: [Internal, External, Vendor]
+          example: Internal
+        division:
+          type: string
+          description: Division handling the project
+          enum: [Compressor, Filters, Pumps, Glass, Water Heater, Electronics, Packaging]
+          example: Compressor
+        category:
+          type: string
+          description: Quality category
+          enum: [Quality A, Quality B, Quality C, Quality D]
+          example: Quality A
+        priority:
+          type: string
+          description: Project priority (defaults to Medium)
+          enum: [High, Medium, Low]
+          default: Medium
+          example: High
+        department:
+          type: string
+          description: Department responsible
+          enum: [Strategy, Finance, Quality, Maintenance, Stores, HR]
+          example: Strategy
+        location:
+          type: string
+          description: Project location
+          enum: [Pune, Delhi, Mumbai, Chennai, Bangalore]
+          example: Pune
+        status:
+          type: string
+          description: Initial project status (defaults to Registered)
+          enum: [Running, Registered, Cancelled, Closed]
+          default: Registered
+          example: Registered
+
+    # ── Generic Response Schemas ──
+
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Human-readable response message
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Human-readable error message

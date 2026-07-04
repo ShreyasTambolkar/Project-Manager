@@ -34,86 +34,126 @@ Assignment_4/
 │   ├── migrate.py            # Migration runner
 │   └── start_all.ps1         # Starts full stack with one command
 └── docs/                     # Documentation
-    ├── Api_Structure.txt     # API endpoints reference
-    └── Database_Schema.md    # Database schema documentation
+    ├── Api_Structure.md      # API endpoints reference
+    ├── Database_Schema.md    # Database schema documentation
+    ├── openapi.yaml          # OpenAPI 3.0 specification
+    ├── swagger-ui.html       # Interactive Swagger UI (open in browser)
+    ├── architecture.md       # System architecture overview
+    └── architecture.png      # Architecture diagram
 ```
 
 
 ## Prerequisites
 
-- Python 3.10+
-- Node.js 18+
-- MySQL 8.0+
+- **Python** 3.10+
+- **Node.js** 18+
+- **MySQL** 8.0+
+- **Git**
 
 
-## Setup
+## Installation Guide
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/ShreyasTambolkar/Project-Manager.git
-   cd Project-Manager
-   ```
+### 1. Clone the repository
 
-2. **Install backend dependencies**
-   ```bash
-   cd project_api
-   pip install -r requirements.txt
-   ```
+```bash
+git clone https://github.com/ShreyasTambolkar/Project-Manager.git
+cd Project-Manager
+```
 
-3. **Install frontend dependencies**
-   ```bash
-   cd project
-   npm install
-   ```
+### 2. Set up environment variables
 
-4. **Create a MySQL database**
-   ```sql
-   CREATE DATABASE project_db;
-   ```
+```bash
+cd project_api
+cp .env.example .env
+```
 
-5. **Configure environment variables**
+Open `.env` and update these values with your local credentials:
 
-   Create a `.env` file in `project_api/` with:
-   ```
-   DB_HOST=localhost
-   DB_NAME=project_db
-   DB_USER=root
-   DB_PASSWORD=your_password
-   DB_PORT=3306
+```env
+# ─── Database (update with your MySQL credentials) ───
+DB_HOST=localhost
+DB_NAME=project_db
+DB_USER=root
+DB_PASSWORD=your_mysql_password    # ← change this
+DB_PORT=3306
 
-   AUTH_PORT=5000
-   STATS_PORT=5001
-   CHARTS_PORT=5002
-   LISTING_PORT=5003
-   CREATE_PORT=5004
+# ─── Microservice Ports (no change needed) ───
+AUTH_PORT=5000
+STATS_PORT=5001
+CHARTS_PORT=5002
+LISTING_PORT=5003
+CREATE_PORT=5004
 
-   MAIL_SERVER=smtp.gmail.com
-   MAIL_PORT=587
-   MAIL_USE_TLS=True
-   MAIL_USERNAME=your_email@gmail.com
-   MAIL_PASSWORD=your_app_password
+# ─── Mail Settings (Gmail SMTP) ───
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USERNAME=your_email@gmail.com       # ← change this
+MAIL_PASSWORD=your_gmail_app_password    # ← change this (see note below)
 
-   HOST=0.0.0.0
-   FRONTEND_URL=http://localhost:5173
-   ```
+# ─── Server & Frontend ───
+HOST=0.0.0.0
+FRONTEND_URL=http://localhost:5173
+```
 
-6. **Run database migrations**
-   ```bash
-   cd project_api
-   python migrate.py
-   ```
+> **Gmail App Password:** Go to [Google Account → Security → App Passwords](https://myaccount.google.com/apppasswords) and generate a 16-character app password. Use that instead of your regular Gmail password. You need 2-Step Verification enabled.
+
+### 3. Install backend dependencies
+
+```bash
+cd project_api
+pip install -r requirements.txt
+```
+
+### 4. Run database migrations
+
+```bash
+python migrate.py
+```
+
+> **Note:** You do **not** need to manually create the database. The migration script automatically creates the `project_db` database if it doesn't exist.
+
+To check migration status:
+```bash
+python migrate.py --status
+```
+
+### 5. Install frontend dependencies
+
+```bash
+cd ../project
+npm install
+```
 
 
 ## Running the Application
 
-Start everything (migrations + all 5 APIs + frontend) with one command:
+### Option A: Start everything with one command (Windows PowerShell)
 
 ```powershell
 cd project_api
 .\start_all.ps1
 ```
 
-This starts:
+This starts all 5 backend APIs + the frontend dev server together.
+
+### Option B: Start services manually
+
+**Backend** (run each in a separate terminal from `project_api/`):
+```bash
+python auth_api/app.py        # Port 5000
+python stats_api/app.py       # Port 5001
+python charts_api/app.py      # Port 5002
+python listing_api/app.py     # Port 5003
+python create_api/app.py      # Port 5004
+```
+
+**Frontend** (from `project/`):
+```bash
+npm run dev                   # Port 5173
+```
+
+### Services
 
 | Service      | URL                    |
 |--------------|------------------------|
@@ -134,6 +174,23 @@ Press `Ctrl+C` to stop all services.
 | alice@projects.com  | Alice@123 |
 | bob@projects.com    | Bob@456   |
 
+These are seeded automatically via migrations.
+
+
+## API Documentation
+
+Interactive API documentation is available via **Swagger UI**:
+
+1. Open `docs/swagger-ui.html` directly in your browser, **or**
+2. Serve it locally:
+   ```bash
+   cd docs
+   python -m http.server 8080
+   ```
+   Then visit: http://localhost:8080/swagger-ui.html
+
+The full OpenAPI 3.0 spec is at `docs/openapi.yaml`.
+
 
 ## Features
 
@@ -145,3 +202,16 @@ Press `Ctrl+C` to stop all services.
 - Create new projects
 - Start, close, and cancel projects
 - Request and error logging across all APIs
+- Interactive Swagger API documentation
+
+
+## Troubleshooting
+
+| Problem | Solution |
+|---------|----------|
+| `mysql.connector` import error | Run `pip install -r requirements.txt` |
+| `Access denied for user 'root'` | Check `DB_PASSWORD` in your `.env` file |
+| Port already in use | Kill the process using the port, or change the port in `.env` |
+| Mail sending fails | Verify Gmail App Password and that 2-Step Verification is enabled |
+| Frontend can't reach APIs | Make sure all 5 API services are running |
+| `migrations/ directory not found` | Run `python migrate.py` from inside the `project_api/` directory |
