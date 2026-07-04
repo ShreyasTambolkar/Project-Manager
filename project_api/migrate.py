@@ -19,6 +19,22 @@ import mysql.connector
 from config import Config
 
 
+def ensure_database():
+    """Create the database if it doesn't exist (connects without selecting a DB)."""
+    conn = mysql.connector.connect(
+        host     = Config.DB_HOST,
+        user     = Config.DB_USER,
+        password = Config.DB_PASSWORD,
+        port     = Config.DB_PORT,
+    )
+    cursor = conn.cursor()
+    cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{Config.DB_NAME}`")
+    conn.commit()
+    cursor.close()
+    conn.close()
+    print(f"  [OK] Database '{Config.DB_NAME}' is ready.")
+
+
 def get_connection():
     return mysql.connector.connect(
         host     = Config.DB_HOST,
@@ -111,6 +127,8 @@ def main():
     if not os.path.isdir(migrations_dir):
         print("  [ERROR] migrations/ directory not found.")
         sys.exit(1)
+
+    ensure_database()
 
     conn   = get_connection()
     cursor = conn.cursor()
